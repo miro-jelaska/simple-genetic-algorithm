@@ -5,15 +5,9 @@ const readlineSync = require('readline-sync');
 const geneticAlgorithm = require('./geneticAlgorithm');
 const config = require('./config')
 
-String.prototype.replaceAt=function(index, replacement) {
+String.prototype.replaceAt = function(index, replacement) {
     return this.substr(0, index) + replacement+ this.substr(index + replacement.length);
 }
-
-console.log(Display)
-
-
-
-
 
 function generateInitialPopulation(){
     function getRandomInt(min, max) {
@@ -31,27 +25,11 @@ function generateInitialPopulation(){
     return Array.from(Array(config.populationSize), (_, index) => generateRandomGenome());
 }
 
-function exactGeneMatch_fitness(genome){
-    // Count presence of one gene for each location
-    let numberExactGeneMatch = 0
-    for(let geneIndex = 0; geneIndex < config.target.length; geneIndex++){
-        let isExactMatch = config.target[geneIndex] === genome[geneIndex]
-        numberExactGeneMatch = numberExactGeneMatch + config.fitnessPoints.exactGeneMatch * (isExactMatch ? 1 : 0)
-    }
-    return numberExactGeneMatch
-}
-
-
-function calculateFitness(genome){
-    return Math.pow(exactGeneMatch_fitness(genome), 2)
-}
-
-const display = new Display(exactGeneMatch_fitness, calculateFitness);
+const display = new Display(geneticAlgorithm.exactGeneMatchFitness, geneticAlgorithm.calculateFitness);
 
 function getEliteMetaParent(metaPopulation){
     return metaPopulation.sort((a,b) => b.fitnessScore - a.fitnessScore)[0];
 }
-
 
 let population = generateInitialPopulation();
 let metaPopulation;
@@ -61,7 +39,7 @@ while(!population.some(genome => genome === config.target)){
     metaPopulation = population.map(genome => {
         return {
             genome: genome,
-            fitnessScore: calculateFitness(genome) 
+            fitnessScore: geneticAlgorithm.calculateFitness(genome) 
         }
     })
     populationFitness = metaPopulation.reduce(function(acc, metaGenome) {
