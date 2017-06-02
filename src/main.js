@@ -3,6 +3,7 @@ const Utility = require('./utility');
 const Display = require('./display');
 const readlineSync = require('readline-sync');
 const geneticAlgorithm = require('./geneticAlgorithm');
+const config = require('./config')
 
 String.prototype.replaceAt=function(index, replacement) {
     return this.substr(0, index) + replacement+ this.substr(index + replacement.length);
@@ -10,20 +11,7 @@ String.prototype.replaceAt=function(index, replacement) {
 
 console.log(Display)
 
-let target ='cilj je kolegija nauciti studente osnovna znanja iz podrucja racunalne inteligencije'
-let config = {
-    verbose: true,
-    printEveryNthGeneration: 100,
-    genes: 'abcdefghijklmnopqrstuvwxyz,. ()'.split(''),
-    target: target,
-    uniqGenesInTarget: Utility.uniqArray(target),
-    populationSize: 25,
-    mutationRate: 1/target.length,
-    fitnessPoints: {
-        geneExists: 0,
-        exactGeneMatch: 1
-    }
-}
+
 
 
 
@@ -58,29 +46,12 @@ function calculateFitness(genome){
     return Math.pow(exactGeneMatch_fitness(genome), 2)
 }
 
-const display = new Display(config, exactGeneMatch_fitness, calculateFitness);
+const display = new Display(exactGeneMatch_fitness, calculateFitness);
 
 function getEliteMetaParent(metaPopulation){
-    return metaPopulation.sort((a,b)=> b.fitnessScore - a.fitnessScore)[0];
+    return metaPopulation.sort((a,b) => b.fitnessScore - a.fitnessScore)[0];
 }
 
-function crossover(firstParent, secondParent, eliteParent){
-    let genomeLength = config.target.length;
-    let midpointIndex = Math.floor(Math.random()* genomeLength)
-    let ab = eliteParent.genome.substring(0, midpointIndex) + secondParent.substring(midpointIndex, genomeLength)
-    let ba = secondParent.substring(0, midpointIndex) + eliteParent.genome.substring(midpointIndex, genomeLength)
-    return (Math.random() > 0.5 ? ab : ba)
-}
-function mutate(genome){
-    for(let geneIndex = 0; geneIndex < config.target.length; geneIndex++){
-        let isGoingToMutate = Math.random() <= config.mutationRate;
-        if(isGoingToMutate){
-            let mutationGeneExpression = config.genes[Math.floor(Math.random() * config.genes.length)]
-            genome = genome.replaceAt(geneIndex, mutationGeneExpression)
-        }
-    }
-    return genome
-}
 
 let population = generateInitialPopulation();
 let metaPopulation;
@@ -97,16 +68,10 @@ while(!population.some(genome => genome === config.target)){
     return acc + metaGenome.fitnessScore
     }, 0)
 
-    metaPopulation = metaPopulation.map(metaGenome => {
-        metaGenome.fitnessRate = metaGenome.fitnessScore / populationFitness
-        return metaGenome
-    })
-
     if(config.verbose && generationNumber % config.printEveryNthGeneration === 0)
         display.prettyPrintMetaPopulation(metaPopulation, populationFitness, generationNumber)
 
-
-    let matingPool = geneticAlgorithm.transformMetaPopulationIntoMatingPool(metaPopulation)
+    let matingPool = geneticAlgorithm.transformMetaPopulationIntoMatingPool(metaPopulation, populationFitness)
     let eliteParent = getEliteMetaParent(metaPopulation)
     let nextGeneration = []
     for(let i = 0; i < config.populationSize; i++){
@@ -116,11 +81,11 @@ while(!population.some(genome => genome === config.target)){
         while(firstParent === secondParent){
             secondParent = matingPool[Math.floor(Math.random() * matingPool.length)]
         }
-        let child = crossover(firstParent, secondParent, eliteParent)
+        let child = geneticAlgorithm.crossover(firstParent, secondParent, eliteParent)
         nextGeneration.push(child);
     }
 
-    population = nextGeneration.map(gene => mutate(gene))   
+    population = nextGeneration.map(gene => geneticAlgorithm.mutate(gene))   
     generationNumber++
 }
 console.log('Success! generation #' + generationNumber)
